@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes VIP</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f4f4f4; }
+        h1 { color: #333; text-align: center; }
+        .card { background: white; padding: 20px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .loading { text-align: center; color: #666; }
+        .error { color: red; text-align: center; font-weight: bold; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <h1>Lista de Clientes</h1>
+    <div id="lista-clientes">
+        <p class="loading">Conectando a base de datos...</p>
+    </div>
+
+    <script>
+        // --- TUS CREDENCIALES ---
+        const supabaseUrl = 'https://mgnpegrrkxgghzmnlvid.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbnBlZ3Jya3hnZ2h6bW5sdmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MjMzMTIsImV4cCI6MjA4MjI5OTMxMn0.rQHpVNlGTT9NVMsEKPUkfA4c3_FXpiEEdJ2oyJaT_jg'
+        
+        // Inicializamos la conexión
+        const client = supabase.createClient(supabaseUrl, supabaseKey)
+
+        async function obtenerClientes() {
+            try {
+                // Seleccionamos todo (*) de la tabla 'clientes'
+                const { data, error } = await client
+                    .from('clientes')
+                    .select('*')
+
+                const contenedor = document.getElementById('lista-clientes');
+                contenedor.innerHTML = ''; // Limpiar mensaje de carga
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data.length === 0) {
+                    contenedor.innerHTML = '<p class="loading">No hay clientes en la tabla aún.</p>';
+                } else {
+                    // Dibujamos cada cliente en pantalla
+                    data.forEach(cliente => {
+                        // Verificamos si existe la columna nombre, si no, mostramos un aviso
+                        const nombreMostrar = cliente.nombre ? cliente.nombre : "Sin nombre";
+                        
+                        contenedor.innerHTML += `
+                            <div class="card">
+                                <h3>${nombreMostrar}</h3>
+                                <small>ID: ${cliente.id}</small>
+                            </div>
+                        `;
+                    });
+                }
+
+            } catch (err) {
+                const contenedor = document.getElementById('lista-clientes');
+                contenedor.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+                console.error("Detalle del error:", err);
+            }
+        }
+
+        // Ejecutar al iniciar
+        obtenerClientes();
+    </script>
+</body>
+</html>
