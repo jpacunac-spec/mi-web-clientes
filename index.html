@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Control de Ventas - Pro v2.1</title>
+  <title>Sistema de Ventas - Dashboard UI</title>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -18,28 +18,62 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   
   <style>
-    body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
-    .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 12px; }
-    .jexcel_content { border: 1px solid #e0e0e0; }
-    .jexcel > thead > tr > td { background-color: #f8f9fa; font-weight: bold; color: #495057; }
+    /* ESTILO MODERNO TIPO DASHBOARD */
+    body { background-color: #f3f4f7; font-family: 'Segoe UI', sans-serif; color: #444; }
+    
+    .main-container { padding: 30px; }
+    
+    /* Tarjetas estilo "Fab Admin" */
+    .card { 
+        border: none; 
+        border-radius: 15px; 
+        box-shadow: 0 5px 20px rgba(0,0,0,0.03); 
+        background: white;
+        transition: transform 0.2s;
+    }
+    
+    .nav-pills .nav-link.active {
+        background-color: #4e73df;
+        border-radius: 50px;
+        padding: 10px 25px;
+        box-shadow: 0 4px 10px rgba(78, 115, 223, 0.4);
+    }
+    .nav-pills .nav-link { color: #666; font-weight: 600; margin-right: 10px; }
+    
+    /* Botones Hoja de Cálculo */
+    .toolbar-btn { border-radius: 8px; font-weight: 500; font-size: 0.85rem; }
+
+    /* Ajustes Grilla */
+    .jexcel_content { border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+    .jexcel > thead > tr > td { background-color: #f8f9fc; color: #4e73df; font-weight: bold; border-bottom: 2px solid #eef2f7; }
   </style>
 </head>
 <body>
 
-  <div class="container-fluid px-4 py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-primary m-0">📊 CONTROL DE VENTAS <span class="badge bg-secondary fs-6">v2.1</span></h3>
+  <div class="main-container">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #2c3e50;">Panel de Control</h3>
+            <small class="text-muted">Gestión de Ventas y Rendimiento</small>
+        </div>
+        <div class="d-flex gap-2">
+             <select class="form-select border-0 shadow-sm" id="filtroAnio" onchange="cargarDashboard()" style="width: 120px;">
+                <option value="2024">2024</option>
+                <option value="2025" selected>2025</option>
+                <option value="2026">2026</option>
+            </select>
+        </div>
     </div>
 
-    <ul class="nav nav-pills mb-3" id="myTab" role="tablist">
+    <ul class="nav nav-pills mb-4" id="myTab" role="tablist">
       <li class="nav-item">
         <button class="nav-link active" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" onclick="cargarGrid()">
-            📝 Hoja de Cálculo
+            📝 Hoja de Datos
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" onclick="cargarDashboard()">
-            📈 Dashboard
+            📊 Dashboard Visual
         </button>
       </li>
     </ul>
@@ -47,53 +81,54 @@
     <div class="tab-content" id="myTabContent">
       
       <div class="tab-pane fade show active" id="registro">
-        <div class="card p-3">
+        <div class="card p-4">
           
           <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-             <div class="btn-group">
-                 <button class="btn btn-outline-secondary btn-sm" onclick="addRow()">➕ Fila</button>
-                 <button class="btn btn-outline-danger btn-sm" onclick="deleteRow()">🗑️ Fila</button>
-                 <button class="btn btn-outline-secondary btn-sm" onclick="addColumn()">➕ Columna (Temp)</button>
+             <div class="btn-group shadow-sm">
+                 <button class="btn btn-light toolbar-btn text-primary" onclick="addRow()">➕ Fila</button>
+                 <button class="btn btn-light toolbar-btn text-danger" onclick="deleteRow()">🗑️ Fila</button>
+                 <button class="btn btn-light toolbar-btn text-secondary" onclick="addColumn()">➕ Columna</button>
+                 <button class="btn btn-light toolbar-btn text-secondary" onclick="deleteColumn()">🗑️ Columna</button>
              </div>
              
              <div class="d-flex gap-2">
                  <input type="file" id="fileUpload" style="display:none" onchange="importarExcel(this)" accept=".xlsx, .xls" />
-                 <button class="btn btn-success btn-sm text-white" onclick="document.getElementById('fileUpload').click()">
-                    📂 Importar Excel
+                 <button class="btn btn-success toolbar-btn text-white shadow-sm" onclick="document.getElementById('fileUpload').click()">
+                    Importar Excel
                  </button>
-                 <button class="btn btn-primary btn-sm fw-bold px-4" onclick="guardarCambios()">
-                    💾 GUARDAR TODO
+                 <button class="btn btn-primary toolbar-btn fw-bold px-4 shadow" onclick="guardarCambios()">
+                    GUARDAR CAMBIOS
                  </button>
              </div>
           </div>
 
           <div id="spreadsheet" class="w-100"></div>
-          
+          <div class="mt-2 text-muted small fst-italic">
+              * Nota: Las columnas nuevas que agregues manualmente son solo visuales y no se guardarán en la base de datos.
+          </div>
         </div>
       </div>
 
       <div class="tab-pane fade" id="dashboard">
-        <div class="row mb-3">
-            <div class="col-md-3">
-                <label class="fw-bold small">Filtrar por Año:</label>
-                <select class="form-select" id="filtroAnio" onchange="cargarDashboard()">
-                    <option value="2024">2024</option>
-                    <option value="2025" selected>2025</option>
-                    <option value="2026">2026</option>
-                </select>
-            </div>
-        </div>
         <div class="row">
             <div class="col-md-8 mb-4">
-                <div class="card p-3 h-100">
-                    <h6 class="text-center fw-bold text-secondary">Rendimiento Mensual</h6>
-                    <div style="height: 350px;"><canvas id="graficoMensual"></canvas></div>
+                <div class="card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold m-0 text-secondary">Rendimiento de Ventas</h5>
+                        <span class="badge bg-light text-primary">Anual</span>
+                    </div>
+                    <div style="height: 350px; width: 100%;">
+                        <canvas id="graficoMensual"></canvas>
+                    </div>
                 </div>
             </div>
+
             <div class="col-md-4 mb-4">
-                <div class="card p-3 h-100">
-                    <h6 class="text-center fw-bold text-secondary">Top Vendedores</h6>
-                    <div style="height: 350px;"><canvas id="graficoVendedores"></canvas></div>
+                <div class="card h-100 p-4">
+                    <h5 class="fw-bold mb-4 text-secondary">Top Vendedores</h5>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="graficoVendedores"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -137,74 +172,56 @@
             data: datosMatriz,
             columns: [
                 { type: 'hidden', title: 'ID', width: 0 }, 
-                { type: 'text', title: 'Vendedor', width: 250 },
-                { type: 'numeric', title: 'Año', width: 80 },
+                { type: 'text', title: 'Vendedor', width: 200 },
+                { type: 'numeric', title: 'Año', width: 70 },
                 { 
-                    type: 'dropdown', title: 'Mes', width: 120, 
+                    type: 'dropdown', title: 'Mes', width: 100, 
                     source: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"] 
                 },
-                // --- AQUI ESTA EL CAMBIO DE FORMATO ---
-                { 
-                    type: 'numeric', 
-                    title: 'Venta Real', 
-                    width: 140, 
-                    mask: '#,##0.00', // Formato visual
-                    decimal: '.' 
-                },
-                { 
-                    type: 'numeric', 
-                    title: 'Meta', 
-                    width: 140, 
-                    mask: '#,##0.00', 
-                    decimal: '.' 
-                },
+                { type: 'numeric', title: 'Venta Real', width: 120, mask: '#,##0.00', decimal: '.' },
+                { type: 'numeric', title: 'Meta', width: 120, mask: '#,##0.00', decimal: '.' },
             ],
             minDimensions: [6, 15],
-            allowInsertColumn: true, // Permitimos insertar columnas visualmente
-            contextMenu: function(obj, x, y, e) {
-                var items = [];
-                items.push({ title: 'Insertar Fila', onclick: function() { obj.insertRow(); } });
-                items.push({ title: 'Eliminar Fila', onclick: function() { obj.deleteRow(); } });
-                return items;
-            }
+            allowInsertColumn: true, 
+            allowManualInsertColumn: true, // Permitir agregar columnas visualmente
+            defaultColAlign: 'left',
         });
     }
 
-    // --- FUNCIONES DE BOTONES ---
+    // --- FUNCIONES DE BOTONES (FILAS Y COLUMNAS) ---
     function addRow() { gridInstance.insertRow(); }
     function deleteRow() { gridInstance.deleteRow(); }
     
-    // Función para agregar columnas (SOLO VISUAL)
+    // Función Agregar Columna (Visual)
     function addColumn() { 
         gridInstance.insertColumn(); 
-        Swal.fire({
-            toast: true, position: 'top-end', icon: 'info', 
-            title: 'Columna agregada (No se guardará en BD)', 
-            showConfirmButton: false, timer: 3000
-        });
+    }
+    
+    // Función Eliminar Columna (Visual)
+    function deleteColumn() {
+        // Elimina la columna seleccionada o la última si no hay selección
+        gridInstance.deleteColumn();
     }
 
-    // --- 2. GUARDADO INTELIGENTE (CORRECCIÓN DE MILES) ---
+    // --- 2. GUARDADO (IGUAL QUE ANTES) ---
     async function guardarCambios() {
         const datosGrid = gridInstance.getData(); 
         const datosParaSubir = [];
 
-        // Función para limpiar el número (quita comas y deja solo punto decimal)
         const limpiarNumero = (valor) => {
             if (!valor) return 0;
-            // Convertimos a string, quitamos comas y convertimos a Float
             return parseFloat(String(valor).replace(/,/g, ''));
         };
 
         datosGrid.forEach(fila => {
-            // Solo procesamos las primeras 6 columnas (ID, Vendedor, Año, Mes, Venta, Meta)
-            // Ignoramos columnas extra que el usuario haya agregado
+            // IMPORTANTE: Solo leemos los índices 0,1,2,3,4,5. 
+            // Si agregas columnas (6, 7...), el código las ignora aquí para no romper la BD.
             const id = fila[0];
             const vendedor = fila[1];
             const anio = fila[2];
             const mes = fila[3];
-            const venta = limpiarNumero(fila[4]); // APLICAMOS LIMPIEZA
-            const meta = limpiarNumero(fila[5]);  // APLICAMOS LIMPIEZA
+            const venta = limpiarNumero(fila[4]);
+            const meta = limpiarNumero(fila[5]);
 
             if(vendedor && vendedor.trim() !== "") {
                 const registro = {
@@ -214,12 +231,9 @@
                     venta: venta || 0,
                     meta: meta || 0
                 };
-
-                if (id && id.length > 5) {
-                    registro.id = id;
-                } else {
-                    registro.id = crypto.randomUUID();
-                }
+                if (id && id.length > 5) registro.id = id;
+                else registro.id = crypto.randomUUID();
+                
                 datosParaSubir.push(registro);
             }
         });
@@ -229,7 +243,6 @@
         try {
             const { error } = await client.from('ventas').upsert(datosParaSubir);
             if(error) throw error;
-
             Swal.fire({icon: 'success', title: '¡Guardado!', timer: 2000, showConfirmButton: false});
             cargarGrid();
         } catch (err) {
@@ -247,40 +260,35 @@
             const workbook = XLSX.read(data, {type: 'array'});
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
-            
             jsonData.forEach((row, index) => {
                 if(index === 0 && typeof row[0] === 'string' && row[0].toLowerCase().includes('vendedor')) return;
-                if(row[0]) {
-                    gridInstance.insertRow([
-                        "", row[0], row[1] || 2025, row[2] || "Enero", row[3] || 0, row[4] || 0
-                    ]);
-                }
+                if(row[0]) gridInstance.insertRow(["", row[0], row[1] || 2025, row[2] || "Enero", row[3] || 0, row[4] || 0]);
             });
             input.value = ''; 
-            Swal.fire('Cargado', 'Datos importados. Revisa y Guarda.', 'success');
+            Swal.fire('Cargado', 'Datos importados.', 'success');
         };
         reader.readAsArrayBuffer(file);
     }
 
-    // --- 4. DASHBOARD ---
+    // --- 4. DASHBOARD ESTILO "FAB ADMIN" (PREMIUM) ---
     async function cargarDashboard() {
         const anioSeleccionado = parseInt(document.getElementById('filtroAnio').value);
         const { data } = await client.from('ventas').select('*').eq('anio', anioSeleccionado);
         if(!data) return;
 
+        // Procesar datos
         const mesesOrden = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const ventasPorMes = new Array(12).fill(0);
-        const metasPorMes = new Array(12).fill(0);
-
+        
         data.forEach(row => {
             const indexMes = mesesOrden.indexOf(row.mes);
-            if(indexMes >= 0) {
-                ventasPorMes[indexMes] += row.venta;
-                metasPorMes[indexMes] += row.meta;
-            }
+            if(indexMes >= 0) ventasPorMes[indexMes] += row.venta;
         });
-        actualizarGraficoMensual(mesesOrden, ventasPorMes, metasPorMes);
+        
+        // Renderizar Gráficos
+        renderChartMensual(mesesOrden, ventasPorMes);
 
+        // Top Vendedores
         const vendedoresMap = {};
         data.forEach(row => {
             if(!vendedoresMap[row.vendedor]) vendedoresMap[row.vendedor] = 0;
@@ -288,38 +296,91 @@
         });
         const vendedoresArray = Object.keys(vendedoresMap).map(v => ({ nombre: v, total: vendedoresMap[v] }));
         vendedoresArray.sort((a, b) => b.total - a.total);
-        actualizarGraficoVendedores(vendedoresArray.slice(0, 10));
+        renderChartVendedores(vendedoresArray.slice(0, 5)); // Solo Top 5 para que se vea limpio
     }
 
-    function actualizarGraficoMensual(labels, ventas, metas) {
-        const ctx = document.getElementById('graficoMensual');
+    // --- GRÁFICO 1: LINEA CURVA CON DEGRADADO ---
+    function renderChartMensual(labels, ventas) {
+        const ctx = document.getElementById('graficoMensual').getContext('2d');
         if (chartMensual) chartMensual.destroy();
+
+        // Crear degradado (Gradient)
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(78, 115, 223, 0.5)'); // Azul transparente arriba
+        gradient.addColorStop(1, 'rgba(78, 115, 223, 0.0)'); // Transparente abajo
+
         chartMensual = new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: labels,
-                datasets: [
-                    { label: 'Venta Real', data: ventas, backgroundColor: '#0d6efd' },
-                    { label: 'Meta', data: metas, backgroundColor: '#e9ecef', type: 'line', borderColor: '#6c757d', borderWidth: 2, pointRadius: 0 }
-                ]
+                datasets: [{
+                    label: 'Ventas Totales ($)',
+                    data: ventas,
+                    borderColor: '#4e73df', // Azul bonito
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#4e73df',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true, // Rellenar área abajo
+                    tension: 0.4 // ESTO HACE LA CURVA SUAVE (Spline)
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }, // Ocultar leyenda para look limpio
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#6e707e',
+                        bodyColor: '#858796',
+                        borderColor: '#dddfeb',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } }, // Quitar rejilla vertical
+                    y: { 
+                        grid: { borderDash: [2], drawBorder: false, color: '#f0f0f0' },
+                        beginAtZero: true 
+                    }
+                }
+            }
         });
     }
 
-    function actualizarGraficoVendedores(data) {
-        const ctx = document.getElementById('graficoVendedores');
+    // --- GRÁFICO 2: DONA MODERNA ---
+    function renderChartVendedores(data) {
+        const ctx = document.getElementById('graficoVendedores').getContext('2d');
         if (chartVendedores) chartVendedores.destroy();
+
         chartVendedores = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: data.map(d => d.nombre),
                 datasets: [{
                     data: data.map(d => d.total),
-                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'], // Paleta Admin
+                    hoverOffset: 10,
+                    borderWidth: 0,
+                    borderRadius: 5 // Bordes redondeados en la dona
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%', // Dona más delgada (Estilo moderno)
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, padding: 20 }
+                    }
+                }
+            }
         });
     }
   </script>
