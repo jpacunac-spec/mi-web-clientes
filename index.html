@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Control de Ventas - Pro</title>
+  <title>Sistema de Control de Ventas - Pro v2.1</title>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -20,30 +20,15 @@
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
     .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 12px; }
-    
-    /* Botones personalizados */
-    .btn-toolbar-custom { gap: 10px; }
-    
-    /* Ajustes visuales de la grilla */
-    .jexcel_content { 
-        box-shadow: none !important; 
-        border: 1px solid #e0e0e0;
-    }
-    .jexcel > thead > tr > td {
-        background-color: #f8f9fa;
-        font-weight: bold;
-        color: #495057;
-    }
+    .jexcel_content { border: 1px solid #e0e0e0; }
+    .jexcel > thead > tr > td { background-color: #f8f9fa; font-weight: bold; color: #495057; }
   </style>
 </head>
 <body>
 
   <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-primary m-0">📊 CONTROL DE VENTAS <span class="badge bg-secondary fs-6">v2.0</span></h3>
-        <div>
-            <span class="text-muted small me-2">Autoguardado desactivado</span>
-        </div>
+        <h3 class="fw-bold text-primary m-0">📊 CONTROL DE VENTAS <span class="badge bg-secondary fs-6">v2.1</span></h3>
     </div>
 
     <ul class="nav nav-pills mb-3" id="myTab" role="tablist">
@@ -66,8 +51,9 @@
           
           <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
              <div class="btn-group">
-                 <button class="btn btn-outline-secondary btn-sm" onclick="addRow()">➕ Agregar Fila</button>
-                 <button class="btn btn-outline-danger btn-sm" onclick="deleteRow()">🗑️ Eliminar Fila</button>
+                 <button class="btn btn-outline-secondary btn-sm" onclick="addRow()">➕ Fila</button>
+                 <button class="btn btn-outline-danger btn-sm" onclick="deleteRow()">🗑️ Fila</button>
+                 <button class="btn btn-outline-secondary btn-sm" onclick="addColumn()">➕ Columna (Temp)</button>
              </div>
              
              <div class="d-flex gap-2">
@@ -119,7 +105,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // --- CONFIGURACIÓN SUPABASE ---
+    // --- CREDENCIALES ---
     const supabaseUrl = 'https://mgnpegrrkxgghzmnlvid.supabase.co'
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbnBlZ3Jya3hnZ2h6bW5sdmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MjMzMTIsImV4cCI6MjA4MjI5OTMxMn0.rQHpVNlGTT9NVMsEKPUkfA4c3_FXpiEEdJ2oyJaT_jg'
     const client = supabase.createClient(supabaseUrl, supabaseKey)
@@ -132,10 +118,8 @@
         cargarGrid();
     });
 
-    // --- 1. LÓGICA DE LA GRILLA (JSPREADSHEET) ---
-
+    // --- 1. CONFIGURACIÓN DE LA GRILLA ---
     async function cargarGrid() {
-        // Traer datos ordenados
         const { data, error } = await client
             .from('ventas')
             .select('id, vendedor, anio, mes, venta, meta')
@@ -143,40 +127,29 @@
 
         if(error) { console.error(error); return; }
 
-        // Mapear datos a matriz
         const datosMatriz = data.map(item => [
-            item.id,          
-            item.vendedor,    
-            item.anio,        
-            item.mes,         
-            item.venta,       
-            item.meta         
+            item.id, item.vendedor, item.anio, item.mes, item.venta, item.meta
         ]);
 
-        // Destruir anterior si existe para evitar duplicados visuales
-        if(gridInstance) {
-            document.getElementById('spreadsheet').innerHTML = '';
-        }
+        if(gridInstance) document.getElementById('spreadsheet').innerHTML = '';
 
-        // Crear nueva instancia
         gridInstance = jspreadsheet(document.getElementById('spreadsheet'), {
             data: datosMatriz,
-            // CONFIGURACIÓN DE COLUMNAS
             columns: [
-                { type: 'hidden', title: 'ID', width: 0 }, // Columna 0: ID (Vital para editar)
+                { type: 'hidden', title: 'ID', width: 0 }, 
                 { type: 'text', title: 'Vendedor', width: 250 },
                 { type: 'numeric', title: 'Año', width: 80 },
                 { 
                     type: 'dropdown', title: 'Mes', width: 120, 
                     source: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"] 
                 },
-                // AQUI ESTA LA MAGIA DEL FORMATO NUMERICO (mask)
+                // --- AQUI ESTA EL CAMBIO DE FORMATO ---
                 { 
                     type: 'numeric', 
                     title: 'Venta Real', 
                     width: 140, 
-                    mask: '#,##0.00', // Comas para miles, punto decimal
-                    decimal: '.'      // Asegura que el punto es decimal
+                    mask: '#,##0.00', // Formato visual
+                    decimal: '.' 
                 },
                 { 
                     type: 'numeric', 
@@ -186,9 +159,8 @@
                     decimal: '.' 
                 },
             ],
-            minDimensions: [6, 15], // Iniciar con 15 filas vacías
-            defaultColAlign: 'left',
-            allowInsertColumn: false, // Bloqueamos columnas para no romper DB
+            minDimensions: [6, 15],
+            allowInsertColumn: true, // Permitimos insertar columnas visualmente
             contextMenu: function(obj, x, y, e) {
                 var items = [];
                 items.push({ title: 'Insertar Fila', onclick: function() { obj.insertRow(); } });
@@ -199,82 +171,69 @@
     }
 
     // --- FUNCIONES DE BOTONES ---
-    function addRow() {
-        gridInstance.insertRow();
-    }
+    function addRow() { gridInstance.insertRow(); }
+    function deleteRow() { gridInstance.deleteRow(); }
     
-    function deleteRow() {
-        gridInstance.deleteRow();
+    // Función para agregar columnas (SOLO VISUAL)
+    function addColumn() { 
+        gridInstance.insertColumn(); 
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'info', 
+            title: 'Columna agregada (No se guardará en BD)', 
+            showConfirmButton: false, timer: 3000
+        });
     }
 
-    // --- 2. LOGICA DE GUARDADO MEJORADA (UPSERT) ---
-    
+    // --- 2. GUARDADO INTELIGENTE (CORRECCIÓN DE MILES) ---
     async function guardarCambios() {
-        // Obtenemos TODOS los datos de la grilla
         const datosGrid = gridInstance.getData(); 
         const datosParaSubir = [];
 
-        // Recorremos fila por fila
+        // Función para limpiar el número (quita comas y deja solo punto decimal)
+        const limpiarNumero = (valor) => {
+            if (!valor) return 0;
+            // Convertimos a string, quitamos comas y convertimos a Float
+            return parseFloat(String(valor).replace(/,/g, ''));
+        };
+
         datosGrid.forEach(fila => {
-            // fila[0] es el ID, fila[1] es vendedor, etc.
+            // Solo procesamos las primeras 6 columnas (ID, Vendedor, Año, Mes, Venta, Meta)
+            // Ignoramos columnas extra que el usuario haya agregado
             const id = fila[0];
             const vendedor = fila[1];
             const anio = fila[2];
             const mes = fila[3];
-            const venta = fila[4]; // Jspreadsheet devuelve el numero puro, sin formato (bien)
-            const meta = fila[5];
+            const venta = limpiarNumero(fila[4]); // APLICAMOS LIMPIEZA
+            const meta = limpiarNumero(fila[5]);  // APLICAMOS LIMPIEZA
 
-            // Solo guardamos si hay nombre de vendedor (evitar filas vacías)
             if(vendedor && vendedor.trim() !== "") {
                 const registro = {
                     vendedor: vendedor,
                     anio: parseInt(anio) || 2025,
                     mes: mes || 'Enero',
-                    venta: parseFloat(venta) || 0,
-                    meta: parseFloat(meta) || 0
+                    venta: venta || 0,
+                    meta: meta || 0
                 };
 
-                // Si tiene ID, lo incluimos (Supabase detectará que es EDICIÓN)
                 if (id && id.length > 5) {
                     registro.id = id;
                 } else {
-                    // Si no tiene ID, es NUEVO, generamos uno
                     registro.id = crypto.randomUUID();
                 }
-
                 datosParaSubir.push(registro);
             }
         });
 
-        if (datosParaSubir.length === 0) {
-            Swal.fire('Vacío', 'No hay datos válidos para guardar', 'info');
-            return;
-        }
-
-        Swal.fire({title: 'Guardando...', text: 'Sincronizando con la base de datos', didOpen: () => Swal.showLoading()});
+        Swal.fire({title: 'Guardando...', didOpen: () => Swal.showLoading()});
 
         try {
-            // USAMOS UPSERT: Si existe ID actualiza, si no existe inserta. Todo en uno.
-            const { error } = await client
-                .from('ventas')
-                .upsert(datosParaSubir);
-
+            const { error } = await client.from('ventas').upsert(datosParaSubir);
             if(error) throw error;
 
-            Swal.fire({
-                icon: 'success', 
-                title: '¡Guardado!', 
-                text: 'Los cambios se han actualizado correctamente.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            
-            // Recargamos la grilla para asegurar que los nuevos IDs se muestren
+            Swal.fire({icon: 'success', title: '¡Guardado!', timer: 2000, showConfirmButton: false});
             cargarGrid();
-
         } catch (err) {
             Swal.fire('Error', err.message, 'error');
-            console.error(err);
         }
     }
 
@@ -282,7 +241,6 @@
     function importarExcel(input) {
         const file = input.files[0];
         if(!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
             const data = new Uint8Array(e.target.result);
@@ -290,29 +248,21 @@
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
             
-            // Insertamos datos en la grilla
             jsonData.forEach((row, index) => {
-                // Saltamos encabezados si dicen "vendedor"
                 if(index === 0 && typeof row[0] === 'string' && row[0].toLowerCase().includes('vendedor')) return;
-                
                 if(row[0]) {
                     gridInstance.insertRow([
-                        "", // ID vacio
-                        row[0], // Vendedor
-                        row[1] || 2025, 
-                        row[2] || "Enero", 
-                        row[3] || 0, 
-                        row[4] || 0
+                        "", row[0], row[1] || 2025, row[2] || "Enero", row[3] || 0, row[4] || 0
                     ]);
                 }
             });
             input.value = ''; 
-            Swal.fire('Excel Cargado', 'Revisa los datos y pulsa GUARDAR TODO', 'success');
+            Swal.fire('Cargado', 'Datos importados. Revisa y Guarda.', 'success');
         };
         reader.readAsArrayBuffer(file);
     }
 
-    // --- 4. DASHBOARD (Sin cambios, funciona igual) ---
+    // --- 4. DASHBOARD ---
     async function cargarDashboard() {
         const anioSeleccionado = parseInt(document.getElementById('filtroAnio').value);
         const { data } = await client.from('ventas').select('*').eq('anio', anioSeleccionado);
