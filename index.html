@@ -3,32 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Control de Ventas</title>
+  <title>Sistema de Control de Ventas - Modo Excel</title>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
+  <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+  <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
+  <script src="https://jsuites.net/v4/jsuites.js"></script>
+  <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+  
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  
   <style>
     body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
     .card { border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.05); border-radius: 10px; }
     .nav-tabs .nav-link.active { background-color: #fff; border-bottom: 3px solid #0d6efd; font-weight: bold; color: #0d6efd; }
     .nav-link { color: #555; }
-    .table-hover tbody tr:hover { background-color: #f1f7ff; cursor: pointer; }
-    .cumplimiento-badge { font-size: 0.9em; padding: 5px 10px; border-radius: 20px; }
+    
+    /* Ajustes para la grilla */
+    #spreadsheet { width: 100%; overflow: hidden; }
+    .jexcel_content { box-shadow: none !important; }
   </style>
 </head>
 <body>
 
   <div class="container py-4">
-    <h2 class="text-center mb-4 fw-bold text-primary">📊 CONTROL DE VENTAS</h2>
+    <h2 class="text-center mb-4 fw-bold text-primary">📊 CONTROL DE VENTAS MASIVO</h2>
 
     <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" onclick="cargarTabla()">📝 Registro de Datos</button>
+      <li class="nav-item">
+        <button class="nav-link active" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" onclick="cargarGrid()">📝 Hoja de Cálculo (Edición)</button>
       </li>
-      <li class="nav-item" role="presentation">
+      <li class="nav-item">
         <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" onclick="cargarDashboard()">📈 Dashboard & Reportes</button>
       </li>
     </ul>
@@ -37,28 +46,24 @@
       
       <div class="tab-pane fade show active" id="registro">
         <div class="card p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold">Producción Vendedores</h5>
-            <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo Registro</button>
-          </div>
           
-          <div class="table-responsive">
-            <table class="table table-hover align-middle bg-white">
-              <thead class="table-dark">
-                <tr>
-                  <th>Vendedor</th>
-                  <th>Año</th>
-                  <th>Mes</th>
-                  <th class="text-end">Venta Real</th>
-                  <th class="text-end">Meta</th>
-                  <th class="text-center">% Cumplimiento</th>
-                  <th class="text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="tablaCuerpo">
-                <tr><td colspan="7" class="text-center p-3">Cargando datos...</td></tr>
-              </tbody>
-            </table>
+          <div class="row mb-3 align-items-center">
+             <div class="col-md-6">
+                 <h5 class="fw-bold mb-0">Gestión de Datos</h5>
+                 <small class="text-muted">Copia y pega desde Excel o edita directamente aquí.</small>
+             </div>
+             <div class="col-md-6 text-end d-flex justify-content-end gap-2">
+                 <input type="file" id="fileUpload" style="display:none" onchange="importarExcel(this)" accept=".xlsx, .xls" />
+                 
+                 <button class="btn btn-outline-success btn-sm" onclick="document.getElementById('fileUpload').click()">📂 Subir Excel</button>
+                 <button class="btn btn-primary btn-sm" onclick="guardarCambios()">💾 GUARDAR CAMBIOS</button>
+             </div>
+          </div>
+
+          <div id="spreadsheet"></div>
+          
+          <div class="alert alert-info mt-3 py-2">
+             <small>💡 <strong>Tip:</strong> Puedes seleccionar varias celdas y presionar <code>Supr</code> para borrar, o <code>Ctrl+V</code> para pegar datos de tu Excel local.</small>
           </div>
         </div>
       </div>
@@ -73,17 +78,16 @@
                 </select>
             </div>
         </div>
-
         <div class="row">
             <div class="col-md-8 mb-4">
                 <div class="card p-3 h-100">
-                    <h6 class="text-center fw-bold">Rendimiento Mensual (Total Empresa)</h6>
+                    <h6 class="text-center fw-bold">Rendimiento Mensual</h6>
                     <div style="height: 300px;"><canvas id="graficoMensual"></canvas></div>
                 </div>
             </div>
             <div class="col-md-4 mb-4">
                 <div class="card p-3 h-100">
-                    <h6 class="text-center fw-bold">Top Vendedores (Acumulado)</h6>
+                    <h6 class="text-center fw-bold">Top Vendedores</h6>
                     <div style="height: 300px;"><canvas id="graficoVendedores"></canvas></div>
                 </div>
             </div>
@@ -93,185 +97,168 @@
     </div>
   </div>
 
-  <div class="modal fade" id="miModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="modalTitle">Registro de Venta</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formVenta">
-            <input type="hidden" id="idVenta">
-            
-            <div class="mb-3">
-              <label class="fw-bold">Vendedor:</label>
-              <input type="text" class="form-control" id="vendedor" placeholder="Nombre..." required>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-6">
-                    <label class="fw-bold">Año:</label>
-                    <input type="number" class="form-control" id="anio" value="2025" required>
-                </div>
-                <div class="col-6">
-                    <label class="fw-bold">Mes:</label>
-                    <select class="form-select" id="mes">
-                        <option>Enero</option><option>Febrero</option><option>Marzo</option>
-                        <option>Abril</option><option>Mayo</option><option>Junio</option>
-                        <option>Julio</option><option>Agosto</option><option>Septiembre</option>
-                        <option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-6">
-                    <label class="fw-bold">Venta Real ($):</label>
-                    <input type="number" class="form-control" id="venta" step="0.01" required>
-                </div>
-                <div class="col-6">
-                    <label class="fw-bold">Meta ($):</label>
-                    <input type="number" class="form-control" id="meta" step="0.01" required>
-                </div>
-            </div>
-
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-danger d-none" id="btnDelete" onclick="borrar()">Eliminar</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" onclick="guardar()">Guardar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // --- 1. TUS CLAVES REALES ---
+    // --- 1. CONFIGURACIÓN ---
     const supabaseUrl = 'https://mgnpegrrkxgghzmnlvid.supabase.co'
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbnBlZ3Jya3hnZ2h6bW5sdmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MjMzMTIsImV4cCI6MjA4MjI5OTMxMn0.rQHpVNlGTT9NVMsEKPUkfA4c3_FXpiEEdJ2oyJaT_jg'
-    
-    // Inicializar cliente
     const client = supabase.createClient(supabaseUrl, supabaseKey)
-    const modalBootstrap = new bootstrap.Modal(document.getElementById('miModal'));
+    
+    let gridInstance = null;
     let chartMensual = null;
     let chartVendedores = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        cargarTabla();
+        cargarGrid();
     });
 
-    // --- FUNCIONES ---
+    // --- 2. LÓGICA DE LA HOJA DE CÁLCULO ---
 
-    async function cargarTabla() {
-        try {
-            const { data, error } = await client
-                .from('ventas')
-                .select('*')
-                .order('anio', { ascending: false })
-                .order('mes', { ascending: false });
+    async function cargarGrid() {
+        // 1. Traer datos de Supabase
+        const { data, error } = await client
+            .from('ventas')
+            .select('id, vendedor, anio, mes, venta, meta')
+            .order('anio', { ascending: false });
 
-            if(error) throw error;
+        if(error) { console.error(error); return; }
 
-            let html = '';
-            if(data.length === 0) {
-                 html = '<tr><td colspan="7" class="text-center p-3">No hay registros aún. Pulsa el botón azul para agregar.</td></tr>';
-            } else {
-                data.forEach(fila => {
-                    let porc = (fila.venta / fila.meta) * 100;
-                    let color = porc >= 100 ? 'bg-success' : (porc >= 80 ? 'bg-warning text-dark' : 'bg-danger');
-                    let filaString = encodeURIComponent(JSON.stringify(fila));
+        // 2. Preparar datos para Jspreadsheet (Matriz simple)
+        const datosMatriz = data.map(item => [
+            item.id,          // Columna 0 (Oculta)
+            item.vendedor,    // Columna 1
+            item.anio,        // Columna 2
+            item.mes,         // Columna 3
+            item.venta,       // Columna 4
+            item.meta         // Columna 5
+        ]);
 
-                    html += `
-                        <tr onclick="editar('${filaString}')">
-                            <td class="fw-bold">${fila.vendedor}</td>
-                            <td>${fila.anio}</td>
-                            <td>${fila.mes}</td>
-                            <td class="text-end">$${fila.venta.toLocaleString()}</td>
-                            <td class="text-end">$${fila.meta.toLocaleString()}</td>
-                            <td class="text-center"><span class="badge ${color} cumplimiento-badge">${porc.toFixed(1)}%</span></td>
-                            <td class="text-center text-muted"><small>Editar ✏️</small></td>
-                        </tr>
-                    `;
-                });
+        // 3. Si la grilla ya existe, la destruimos para crearla nueva
+        if(gridInstance) {
+            document.getElementById('spreadsheet').innerHTML = '';
+        }
+
+        // 4. Crear la Grilla
+        gridInstance = jspreadsheet(document.getElementById('spreadsheet'), {
+            data: datosMatriz,
+            columns: [
+                { type: 'hidden', title: 'ID', width: 0 }, // ID oculto para saber si es editar o nuevo
+                { type: 'text', title: 'Vendedor', width: 200 },
+                { type: 'numeric', title: 'Año', width: 80 },
+                { type: 'dropdown', title: 'Mes', width: 120, source: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"] },
+                { type: 'numeric', title: 'Venta Real', width: 120, mask: '$ #.##0,00' },
+                { type: 'numeric', title: 'Meta', width: 120, mask: '$ #.##0,00' },
+            ],
+            minDimensions: [6, 10], // Mínimo 10 filas vacías para pegar datos
+            allowInsertRow: true,
+            allowInsertColumn: false, // No queremos que rompan la estructura
+            tableOverflow: true,
+            tableHeight: '400px',
+        });
+    }
+
+    async function guardarCambios() {
+        const datosGrid = gridInstance.getData(); // Obtiene toda la tabla
+        const actualizaciones = [];
+        const nuevos = [];
+        const idsPresentes = [];
+
+        // Validamos y clasificamos (Nuevo vs Actualizar)
+        datosGrid.forEach(fila => {
+            const [id, vendedor, anio, mes, venta, meta] = fila;
+            
+            // Solo procesamos filas que tengan al menos Vendedor y Venta
+            if(vendedor && venta) {
+                const objeto = {
+                    vendedor: vendedor,
+                    anio: parseInt(anio) || 2025,
+                    mes: mes || 'Enero',
+                    venta: parseFloat(venta),
+                    meta: parseFloat(meta) || 0
+                };
+
+                if(id && id.length > 5) {
+                    // Si tiene ID largo, es UPDATE
+                    objeto.id = id;
+                    actualizaciones.push(objeto);
+                    idsPresentes.push(id);
+                } else {
+                    // Si no tiene ID, es INSERT
+                    objeto.id = crypto.randomUUID();
+                    nuevos.push(objeto);
+                }
             }
-            document.getElementById('tablaCuerpo').innerHTML = html;
+        });
+
+        Swal.fire({title: 'Procesando...', didOpen: () => Swal.showLoading()});
+
+        try {
+            // 1. Guardar nuevos (Batch Insert)
+            if(nuevos.length > 0) {
+                const { error } = await client.from('ventas').insert(nuevos);
+                if(error) throw error;
+            }
+
+            // 2. Actualizar existentes (Uno por uno - Supabase no tiene Batch Update simple en JS client)
+            // Para optimizar, usamos Upsert general
+            if(actualizaciones.length > 0) {
+                const { error } = await client.from('ventas').upsert(actualizaciones);
+                if(error) throw error;
+            }
+
+            // (Opcional) Podríamos borrar los que ya no están en la tabla, pero es peligroso en modo masivo.
+            // Por ahora solo Agregamos y Editamos.
+
+            Swal.fire({icon: 'success', title: '¡Datos Sincronizados!', timer: 1500});
+            cargarGrid(); // Recargar para ver los IDs nuevos asignados
+
         } catch (err) {
-            console.error(err);
-            document.getElementById('tablaCuerpo').innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error: ${err.message}. Revisa si creaste la tabla 'ventas' en Supabase.</td></tr>`;
-        }
-    }
-
-    function abrirModal() {
-        document.getElementById('formVenta').reset();
-        document.getElementById('idVenta').value = "";
-        document.getElementById('modalTitle').innerText = "Nueva Venta";
-        document.getElementById('btnDelete').classList.add('d-none');
-        modalBootstrap.show();
-    }
-
-    function editar(filaString) {
-        const fila = JSON.parse(decodeURIComponent(filaString));
-        document.getElementById('idVenta').value = fila.id;
-        document.getElementById('vendedor').value = fila.vendedor;
-        document.getElementById('anio').value = fila.anio;
-        document.getElementById('mes').value = fila.mes;
-        document.getElementById('venta').value = fila.venta;
-        document.getElementById('meta').value = fila.meta;
-
-        document.getElementById('modalTitle').innerText = "Editar Venta";
-        document.getElementById('btnDelete').classList.remove('d-none');
-        modalBootstrap.show();
-    }
-
-    async function guardar() {
-        const id = document.getElementById('idVenta').value;
-        const datos = {
-            vendedor: document.getElementById('vendedor').value,
-            anio: parseInt(document.getElementById('anio').value),
-            mes: document.getElementById('mes').value,
-            venta: parseFloat(document.getElementById('venta').value),
-            meta: parseFloat(document.getElementById('meta').value)
-        };
-
-        if(!datos.vendedor || !datos.venta || !datos.meta) {
-            Swal.fire('Error', 'Completa los campos', 'warning');
-            return;
-        }
-
-        Swal.fire({title: 'Guardando...', didOpen: () => Swal.showLoading()});
-
-        try {
-            if(id) {
-                await client.from('ventas').update(datos).eq('id', id);
-            } else {
-                datos.id = crypto.randomUUID(); 
-                await client.from('ventas').insert(datos);
-            }
-            Swal.fire('Guardado', '', 'success');
-            modalBootstrap.hide();
-            cargarTabla();
-        } catch(err) {
             Swal.fire('Error', err.message, 'error');
         }
     }
 
-    async function borrar() {
-        const id = document.getElementById('idVenta').value;
-        Swal.fire({title: '¿Eliminar?', icon: 'warning', showCancelButton: true}).then(async (res) => {
-            if(res.isConfirmed) {
-                await client.from('ventas').delete().eq('id', id);
-                Swal.fire('Eliminado', '', 'success');
-                modalBootstrap.hide();
-                cargarTabla();
-            }
-        });
+    // --- 3. IMPORTAR EXCEL (Drag & Drop o Click) ---
+    function importarExcel(input) {
+        const file = input.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            
+            // Convertir a JSON
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+            
+            // Omitimos la fila 0 si son cabeceras (Vendedor, Año, etc)
+            // Asumimos que el Excel viene en orden: Vendedor | Año | Mes | Venta | Meta
+            
+            // Insertamos en la grilla
+            jsonData.forEach((row, index) => {
+                if(index === 0 && typeof row[0] === 'string' && row[0].toLowerCase().includes('vendedor')) return; // Saltar cabecera
+                
+                // Mapeo simple: Col 0->Vendedor, 1->Año, 2->Mes, 3->Venta, 4->Meta
+                if(row[0]) {
+                    gridInstance.insertRow([
+                        "", // ID vacío (nuevo)
+                        row[0], // Vendedor
+                        row[1] || 2025, 
+                        row[2] || "Enero", 
+                        row[3] || 0, 
+                        row[4] || 0
+                    ]);
+                }
+            });
+            
+            input.value = ''; // Limpiar input
+            Swal.fire('Excel Cargado', 'Revisa los datos en la tabla y pulsa GUARDAR CAMBIOS', 'success');
+        };
+        reader.readAsArrayBuffer(file);
     }
 
-    // --- DASHBOARD ---
+    // --- 4. DASHBOARD (Igual que antes) ---
     async function cargarDashboard() {
         const anioSeleccionado = parseInt(document.getElementById('filtroAnio').value);
         const { data } = await client.from('ventas').select('*').eq('anio', anioSeleccionado);
@@ -288,7 +275,6 @@
                 metasPorMes[indexMes] += row.meta;
             }
         });
-
         actualizarGraficoMensual(mesesOrden, ventasPorMes, metasPorMes);
 
         const vendedoresMap = {};
@@ -296,7 +282,6 @@
             if(!vendedoresMap[row.vendedor]) vendedoresMap[row.vendedor] = 0;
             vendedoresMap[row.vendedor] += row.venta;
         });
-
         const vendedoresArray = Object.keys(vendedoresMap).map(v => ({ nombre: v, total: vendedoresMap[v] }));
         vendedoresArray.sort((a, b) => b.total - a.total);
         actualizarGraficoVendedores(vendedoresArray.slice(0, 10));
