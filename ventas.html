@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Control de Ventas</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <style>
+    body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+    .card { border: none; shadow: 0 4px 8px rgba(0,0,0,0.05); border-radius: 10px; }
+    .nav-tabs .nav-link.active { background-color: #fff; border-bottom: 3px solid #0d6efd; font-weight: bold; color: #0d6efd; }
+    .nav-link { color: #555; }
+    .table-hover tbody tr:hover { background-color: #f1f7ff; cursor: pointer; }
+    .cumplimiento-badge { font-size: 0.9em; padding: 5px 10px; border-radius: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="container py-4">
+    <h2 class="text-center mb-4 fw-bold text-primary">📊 CONTROL DE VENTAS</h2>
+
+    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" onclick="cargarTabla()">📝 Registro de Datos</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" onclick="cargarDashboard()">📈 Dashboard & Reportes</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+      
+      <div class="tab-pane fade show active" id="registro">
+        <div class="card p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold">Producción Vendedores</h5>
+            <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo Registro</button>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover align-middle bg-white">
+              <thead class="table-dark">
+                <tr>
+                  <th>Vendedor</th>
+                  <th>Año</th>
+                  <th>Mes</th>
+                  <th class="text-end">Venta Real</th>
+                  <th class="text-end">Meta</th>
+                  <th class="text-center">% Cumplimiento</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaCuerpo">
+                <tr><td colspan="7" class="text-center p-3">Cargando datos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="dashboard">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <select class="form-select" id="filtroAnio" onchange="cargarDashboard()">
+                    <option value="2024">2024</option>
+                    <option value="2025" selected>2025</option>
+                    <option value="2026">2026</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 mb-4">
+                <div class="card p-3 h-100">
+                    <h6 class="text-center fw-bold">Rendimiento Mensual (Total Empresa)</h6>
+                    <canvas id="graficoMensual"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card p-3 h-100">
+                    <h6 class="text-center fw-bold">Top Vendedores (Acumulado Año)</h6>
+                    <canvas id="graficoVendedores"></canvas>
+                </div>
+            </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal fade" id="miModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalTitle">Registro de Venta</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formVenta">
+            <input type="hidden" id="idVenta">
+            
+            <div class="mb-3">
+              <label class="fw-bold">Vendedor:</label>
+              <input type="text" class="form-control" id="vendedor" placeholder="Nombre del vendedor" required>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="fw-bold">Año:</label>
+                    <input type="number" class="form-control" id="anio" value="2025" required>
+                </div>
+                <div class="col-6">
+                    <label class="fw-bold">Mes:</label>
+                    <select class="form-select" id="mes">
+                        <option>Enero</option><option>Febrero</option><option>Marzo</option>
+                        <option>Abril</option><option>Mayo</option><option>Junio</option>
+                        <option>Julio</option><option>Agosto</option><option>Septiembre</option>
+                        <option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="fw-bold">Venta Real ($):</label>
+                    <input type="number" class="form-control" id="venta" step="0.01" required>
+                </div>
+                <div class="col-6">
+                    <label class="fw-bold">Meta ($):</label>
+                    <input type="number" class="form-control" id="meta" step="0.01" required>
+                </div>
+            </div>
+
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger d-none" id="btnDelete" onclick="borrar()">Eliminar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardar()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // --- 1. CONFIGURACIÓN ---
+    const supabaseUrl = 'AQUI_TU_URL_DE_SUPABASE'
+    const supabaseKey = 'AQUI_TU_ANON_KEY_DE_SUPABASE'
+    const client = supabase.createClient(supabaseUrl, supabaseKey)
+
+    const modalBootstrap = new bootstrap.Modal(document.getElementById('miModal'));
+    let chartMensual = null;
+    let chartVendedores = null;
+
+    // AL CARGAR LA PAGINA
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarTabla();
+    });
+
+    // --- 2. FUNCIONES DE LA TABLA (CRUD) ---
+
+    async function cargarTabla() {
+        const { data, error } = await client
+            .from('ventas')
+            .select('*')
+            .order('anio', { ascending: false })
+            .order('mes', { ascending: false });
+
+        if(error) { console.error(error); return; }
+
+        let html = '';
+        data.forEach(fila => {
+            // Calcular porcentaje
+            let porc = (fila.venta / fila.meta) * 100;
+            let color = porc >= 100 ? 'bg-success' : (porc >= 80 ? 'bg-warning text-dark' : 'bg-danger');
+            
+            // Convertir objeto fila a string seguro para pasar al onclick
+            let filaString = encodeURIComponent(JSON.stringify(fila));
+
+            html += `
+                <tr onclick="editar('${filaString}')">
+                    <td class="fw-bold">${fila.vendedor}</td>
+                    <td>${fila.anio}</td>
+                    <td>${fila.mes}</td>
+                    <td class="text-end">$${fila.venta.toLocaleString()}</td>
+                    <td class="text-end">$${fila.meta.toLocaleString()}</td>
+                    <td class="text-center">
+                        <span class="badge ${color} cumplimiento-badge">${porc.toFixed(1)}%</span>
+                    </td>
+                    <td class="text-center text-muted"><small>Editar ✏️</small></td>
+                </tr>
+            `;
+        });
+        document.getElementById('tablaCuerpo').innerHTML = html;
+    }
+
+    function abrirModal() {
+        document.getElementById('formVenta').reset();
+        document.getElementById('idVenta').value = "";
+        document.getElementById('modalTitle').innerText = "Nueva Venta";
+        document.getElementById('btnDelete').classList.add('d-none');
+        modalBootstrap.show();
+    }
+
+    function editar(filaString) {
+        const fila = JSON.parse(decodeURIComponent(filaString));
+        
+        document.getElementById('idVenta').value = fila.id;
+        document.getElementById('vendedor').value = fila.vendedor;
+        document.getElementById('anio').value = fila.anio;
+        document.getElementById('mes').value = fila.mes;
+        document.getElementById('venta').value = fila.venta;
+        document.getElementById('meta').value = fila.meta;
+
+        document.getElementById('modalTitle').innerText = "Editar Venta";
+        document.getElementById('btnDelete').classList.remove('d-none');
+        modalBootstrap.show();
+    }
+
+    async function guardar() {
+        const id = document.getElementById('idVenta').value;
+        const datos = {
+            vendedor: document.getElementById('vendedor').value,
+            anio: parseInt(document.getElementById('anio').value),
+            mes: document.getElementById('mes').value,
+            venta: parseFloat(document.getElementById('venta').value),
+            meta: parseFloat(document.getElementById('meta').value)
+        };
+
+        if(!datos.vendedor || !datos.venta || !datos.meta) {
+            Swal.fire('Error', 'Completa los campos', 'warning');
+            return;
+        }
+
+        Swal.fire({title: 'Guardando...', didOpen: () => Swal.showLoading()});
+
+        if(id) {
+            // Editar
+            await client.from('ventas').update(datos).eq('id', id);
+        } else {
+            // Nuevo (Generamos ID nosotros o dejamos que Supabase lo haga si es UUID)
+            datos.id = crypto.randomUUID(); 
+            await client.from('ventas').insert(datos);
+        }
+
+        Swal.fire('Guardado', '', 'success');
+        modalBootstrap.hide();
+        cargarTabla(); // Recargar tabla
+    }
+
+    async function borrar() {
+        const id = document.getElementById('idVenta').value;
+        
+        Swal.fire({
+            title: '¿Eliminar?', icon: 'warning', showCancelButton: true
+        }).then(async (res) => {
+            if(res.isConfirmed) {
+                await client.from('ventas').delete().eq('id', id);
+                Swal.fire('Eliminado', '', 'success');
+                modalBootstrap.hide();
+                cargarTabla();
+            }
+        });
+    }
+
+    // --- 3. FUNCIONES DEL DASHBOARD (GRÁFICOS) ---
+
+    async function cargarDashboard() {
+        const anioSeleccionado = parseInt(document.getElementById('filtroAnio').value);
+        
+        // 1. Obtener datos filtrados por año
+        const { data, error } = await client
+            .from('ventas')
+            .select('*')
+            .eq('anio', anioSeleccionado);
+
+        if(error || !data) return;
+
+        // --- PROCESAR DATOS PARA GRÁFICO 1 (POR MESES) ---
+        // Agrupar ventas y metas por mes
+        const mesesOrden = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const ventasPorMes = new Array(12).fill(0);
+        const metasPorMes = new Array(12).fill(0);
+
+        data.forEach(row => {
+            const indexMes = mesesOrden.indexOf(row.mes);
+            if(indexMes >= 0) {
+                ventasPorMes[indexMes] += row.venta;
+                metasPorMes[indexMes] += row.meta;
+            }
+        });
+
+        actualizarGraficoMensual(mesesOrden, ventasPorMes, metasPorMes);
+
+        // --- PROCESAR DATOS PARA GRÁFICO 2 (TOP VENDEDORES) ---
+        // Agrupar por vendedor
+        const vendedoresMap = {};
+        data.forEach(row => {
+            if(!vendedoresMap[row.vendedor]) vendedoresMap[row.vendedor] = 0;
+            vendedoresMap[row.vendedor] += row.venta;
+        });
+
+        // Convertir a array y ordenar
+        const vendedoresArray = Object.keys(vendedoresMap).map(v => {
+            return { nombre: v, total: vendedoresMap[v] };
+        });
+        vendedoresArray.sort((a, b) => b.total - a.total); // Ordenar mayor a menor
+        
+        // Tomar top 10
+        const topVendedores = vendedoresArray.slice(0, 10);
+        actualizarGraficoVendedores(topVendedores);
+    }
+
+    function actualizarGraficoMensual(labels, ventas, metas) {
+        const ctx = document.getElementById('graficoMensual');
+        
+        if (chartMensual) chartMensual.destroy(); // Destruir anterior si existe
+
+        chartMensual = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Venta Real', data: ventas, backgroundColor: '#0d6efd' },
+                    { label: 'Meta', data: metas, backgroundColor: '#e9ecef', type: 'line', borderColor: '#6c757d', borderWidth: 2, pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function actualizarGraficoVendedores(data) {
+        const ctx = document.getElementById('graficoVendedores');
+        if (chartVendedores) chartVendedores.destroy();
+
+        chartVendedores = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => d.nombre),
+                datasets: [{
+                    data: data.map(d => d.total),
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+  </script>
+</body>
+</html>
